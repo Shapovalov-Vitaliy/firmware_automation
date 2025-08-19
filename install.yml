@@ -1,0 +1,23 @@
+---
+- hosts: localhost
+  become: false
+  gather_facts: false
+  tasks:
+  - name: "Install libtool"
+    ansible.builtin.package:
+      name:
+        - libtool
+      state: latest
+
+  - name: "Install openocd"
+    shell: |
+      tar -xvf openocd.tar.gz
+      cd openocd
+      ./bootstrap
+      ./configure
+      make
+      sudo make install
+
+  - name: "Add $USER to dialout group"
+    shell: |
+      sudo usermod -a -G dialout $USER

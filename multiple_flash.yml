@@ -1,0 +1,62 @@
+- set_fact:
+    jlink_bus: "{{ item }}"
+
+- debug:
+    var: jlink_bus
+
+- set_fact:
+    jlink_bus: "{{ jlink_bus.split() }}"
+
+- set_fact:
+    dev: "{{ jlink_bus[3] }}"
+
+- shell: |
+    mktemp
+  register: tempfile
+
+- shell: |
+    echo {{ jlink_bus[1] }} > {{ tempfile.stdout_lines[0] }}
+    sed "s/^0*//" {{ tempfile.stdout_lines[0] }}
+  register: jlink_bus
+  
+- debug:
+    var: tempfile.stdout_lines[0]
+
+- set_fact:
+    jlink_bus: "{{ jlink_bus.stdout_lines[0] }}"
+
+- shell: |
+    echo {{ dev }} > {{ tempfile.stdout_lines[0] }}
+    sed "s/^0*//" {{ tempfile.stdout_lines[0] }}
+  register: dev
+
+- shell: |
+    rm {{ tempfile.stdout_lines[0] }}
+
+- set_fact:
+    dev: "{{ dev.stdout_lines[0][:-1] }}"
+
+- shell: |
+    lsusb -t | grep "Dev {{ dev }}"
+  register: dev
+
+- set_fact:
+    jlink_port: "{{ dev.stdout_lines[0].split()[2][:-1] }}"
+
+- name: "Openocd jlink bus/port was found"
+  debug:
+    var: jlink_bus, jlink_port
+
+- name: "Run openocd if not last"
+  shell: |
+    nohup openocd -f interface/jlink.cfg -f target/{{ target_cfg }} \
+    -c "adapter usb location {{ jlink_bus }}-{{ jlink_port }}" \
+    -c "init; reset halt; flash erase_sector 0 0 last; flash write_bank 0 {{ firmware_full_path }}; reset run; exit" &
+  when: ansible_loop.last == false
+
+- name: "Run openocd if last"
+  shell: |
+    openocd -f interface/jlink.cfg -f target/{{ target_cfg }} \
+    -c "adapter usb location {{ jlink_bus }}-{{ jlink_port }}" \
+    -c "init; reset halt; flash erase_sector 0 0 last; flash write_bank 0 {{ firmware_full_path }}; reset run; exit"
+  when: ansible_loop.last == true

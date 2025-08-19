@@ -1,0 +1,40 @@
+---
+- hosts: localhost
+  become: false
+  gather_facts: false
+  tasks:
+  - name: "Find firmware_full_path"
+    shell: |
+      ls {{ firmware_full_path }}
+
+  - name: "Kill openocd processes"
+    shell: |
+      killall -s 9 openocd
+    ignore_errors: true
+
+  - name: "Find openocd jlink bus/port"
+    block:
+      - name: "grep J-Link"
+        shell: |
+          lsusb | grep J-Link
+        register: grep_string
+    rescue:
+      - name: "grep 1366"
+        shell: |
+          lsusb | grep 1366
+        register: grep_string
+
+  - name: "Run minicom"
+    shell: |
+      ls /dev/ttyUSB*
+    register: tty
+
+  - shell: |
+      nohup gnome-terminal -- sh -c "minicom -D {{ item }} -b 115200; bash"
+    loop: "{{ tty.stdout_lines }}"
+
+  - name: "Multiple flash"
+    include_tasks: multiple_flash.yml
+    loop: "{{ grep_string.stdout_lines }}"
+    loop_control:
+      extended: true
