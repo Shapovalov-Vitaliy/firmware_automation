@@ -19,7 +19,7 @@ install.yml нужно запустить только 1 раз, чтобы ус
 ## Запуск
 
 ```
-ansible-playbook flash.yml -e firmware_full_path="/full/path/to/firmware.bin" target_cfg="config_file.cfg"
+ansible-playbook flash.yml -e firmware_full_path="/full/path/to/firmware.bin" -e target_cfg="config_file.cfg"
 ```
 target_cfg - имя файла конфигурации в openocd/tcl/target
 
